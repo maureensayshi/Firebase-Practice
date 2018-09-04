@@ -31,7 +31,6 @@ function submitArticle(){
   showSubmitArticle(newArticle);
 };
 
-//印出文章
 function showSubmitArticle(newArticle){
   let showSubmit = document.querySelector(".showSubmit");
   let articleDiv = document.createElement("div");
@@ -92,8 +91,8 @@ databaseUser.on("value", function(snapshot){
     return item.email == myEmail; 
   }) 
   console.log(findMyEmail);
-  console.log(findMyEmail.friends);
-  let matchingFriendArray = findMyEmail.friends.filter(function(item){
+  let myFriendArray = Object.values(findMyEmail.friends);  
+  let matchingFriendArray = myFriendArray.filter(function(item){
     return item.accept == "好友";
   });
   console.log(matchingFriendArray);   
