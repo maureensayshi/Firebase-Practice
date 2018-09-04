@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +7,33 @@
     <title>Document</title>
 </head>
 <body>
+    <div>
+        <input class="articleTitle" placeholder="輸入標題..."/>
+        <select class="articleTags">
+            <option>表特</option>
+            <option>八卦</option>
+            <option>就可</option>
+            <option>生活</option>
+        </select>
+        <input class="articleContent" placeholder="輸入文章內容..."/>
+        <button class="articleSumit" onClick="submitArticle()">建立貼文</button>
+    </div>
+    <div class="showSubmit"></div>
+
+    <div>
+        <div>按好友名單搜尋</div>
+        <select class="articleSearch" onchange="match()"></select>
+        <div>按貼文分類搜尋</div>
+        <select class="tagsSearch" onchange="match()">
+            <option></option>
+            <option>表特</option>
+            <option>八卦</option>
+            <option>就可</option>
+            <option>生活</option>
+        </select>
+        
+    </div>
+    <div class="show"></div>
     
 
 <script src="https://www.gstatic.com/firebasejs/5.4.2/firebase.js"></script>

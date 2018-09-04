@@ -3,9 +3,8 @@
 function signIn() {
     let email = document.getElementById("email").value;
     window.localStorage.setItem("email",email);
-    window.location = "/user.html";
+    window.location = "/article.html";
 }
-
 
 
 function toggleSignIn() {
