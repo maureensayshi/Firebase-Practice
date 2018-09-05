@@ -3,13 +3,15 @@ let databaseArticle = firebase.database().ref("/article_database");
 let databaseUser = firebase.database().ref("/user_database");
 let databaseUserAll;
 let myEmailConvert;
+let myEmail;
 
 //找到好友
 databaseUser.on("value", function(snapshot){
   console.log(snapshot.val());  
   databaseUserAll = snapshot.val();  
+  console.log(databaseUserAll);
   
-  let myEmail = window.localStorage.getItem("email"); //使用者的email
+  myEmail = window.localStorage.getItem("email"); //使用者的email
   console.log(myEmail);
   myEmailConvert = myEmail.replace(/\.|@/g, "_");
   let userArray = Object.values(snapshot.val());
@@ -17,20 +19,26 @@ databaseUser.on("value", function(snapshot){
   let findMyEmail = userArray.find(function(item){
     return item.email == myEmail; 
   }) 
-  console.log(findMyEmail);
-  
-  let myFriendArray = Object.values(findMyEmail.friends); 
-  console.log(myFriendArray);
-  createMyProfile(findMyEmail);
 
-  let matchingFriendArray = myFriendArray.filter(function(item){
-    return item.accept == "好友";
-  });
-  console.log(matchingFriendArray);   
-  let friendsEmail = matchingFriendArray.map(item => item.friend_email);
-  console.log(friendsEmail);
-  createFriendsOptions(friendsEmail);
-});
+  createMyProfile(findMyEmail);
+  console.log(findMyEmail);
+
+  if(databaseUserAll[myEmailConvert].friends){
+    let myFriendArray = Object.values(findMyEmail.friends); 
+    console.log(myFriendArray);
+
+    let matchingFriendArray = myFriendArray.filter(function(item){
+      return item.accept == "好友";
+    });
+    console.log(matchingFriendArray);   
+    let friendsEmail = matchingFriendArray.map(item => item.friend_email);
+    console.log(friendsEmail);
+    createFriendsOptions(friendsEmail);
+    }
+  }
+);
+
+
 
 let friends;
 
@@ -48,75 +56,113 @@ function createMyProfile(findMyEmail){
   myEmail.textContent = "信箱 : " + findMyEmail.email;
   myProfile.append(myName, myEmail);
 
-  friends = findMyEmail.friends;
-  console.log(friends);
-  let allFriendEmail = Object.values(friends);
-  console.log(allFriendEmail);
+  if(findMyEmail.friends){
+    friends = findMyEmail.friends;
+    console.log(friends);
+    let allFriendEmail = Object.values(friends);
+    console.log(allFriendEmail);
 
-  let friendDiv = document.querySelector(".friend");
-  while (friendDiv.hasChildNodes()) {
-    friendDiv.removeChild(friendDiv.firstChild);
-  }
+    let friendDiv = document.querySelector(".friend");
+    while (friendDiv.hasChildNodes()) {
+      friendDiv.removeChild(friendDiv.firstChild);
+    }
+      for(let friend in friends){
+        console.log(friend);
+        console.log(friends[friend].accept);
+        console.log(friends[friend].friend_email);
+        
+        let friendEmail = document.createElement("div");
+        friendEmail.textContent = friends[friend].friend_email;
+        
+        let friendStatus = document.createElement("div");
+        friendStatus.textContent = friends[friend].accept;
+        friendDiv.append(friendEmail, friendStatus);
+
+        let buttonText;
+        let buttonFunc;
+
+        switch(friends[friend].accept){
+          case "好友" : 
+            buttonText = "解除好友";
+            buttonFunc = (e) => deleteFriend(e);
+            break;
+          case "發送邀請中" : 
+            buttonText = "取消邀請";
+            buttonFunc = (e) => deleteFriend(e);
+            break;
+          case "是否接受邀請" :
+            buttonText = "接受邀請";
+            buttonFunc = (e) => acceptFriend(e);
+            break;
+        }
+        let friendStatusButton = document.createElement("button");
+        friendStatusButton.textContent = buttonText;
+        friendDiv.appendChild(friendStatusButton);    
+        friendStatusButton.onclick = function(){buttonFunc(friend)}; 
+            
+      }
+    } else {
+      let emptyBox = document.querySelector(".friend");
+      emptyBox.textContent = "";
+    }
+  } 
+
+function deleteFriend(friend) {
+  console.log(databaseUserAll); //所有 user 的資料
+  console.log(myEmailConvert); //我的正規表達式 email
+  console.log(friend); //刪除者的正規表達式 email
+  delete databaseUserAll[myEmailConvert].friends[friend];
+  delete databaseUserAll[friend].friends[myEmailConvert];
+  databaseUser.set(databaseUserAll);
+}
+
+function acceptFriend(friend) {
+  console.log(databaseUserAll); //所有 user 的資料
+  console.log(myEmailConvert); //我的正規表達式 email
+  console.log(friend); //刪除者的正規表達式 email
+  databaseUserAll[myEmailConvert].friends[friend].accept = "好友";
+  databaseUserAll[friend].friends[myEmailConvert].accept = "好友";
+  databaseUser.set(databaseUserAll);
+}   
+
+function search(){
+  let searchEmail = document.querySelector(".addFriend").value;
+  console.log(searchEmail);
+  console.log(myEmail);
+  // console.log(Object.keys(databaseUserAll[myEmailConvert].friends));
+  let searchEmailConvert = searchEmail.replace(/\.|@/g, "_");
+  
+  if(databaseUserAll[myEmailConvert].friends == null && searchEmail != myEmail){
+    databaseUserAll[myEmailConvert].friends = {[searchEmailConvert] : {accept: "發送邀請中", friend_email: searchEmail}};
+    databaseUserAll[searchEmailConvert].friends[myEmailConvert]={accept: "是否接受邀請", friend_email: myEmail};
+    console.log(databaseUserAll[myEmailConvert].friends);
+  } else if(databaseUserAll[myEmailConvert].friends == null && searchEmail == myEmail || searchEmail == myEmail){
+    alert("你加到自己了XD");
+  } else if(databaseUserAll[myEmailConvert].friends[searchEmailConvert]){
+    alert("你跟" + searchEmail + "已經是好友或你已送出邀請過或是你沒答應");
+  } else{    
+    if(!databaseUserAll[myEmailConvert].friends){
+      databaseUserAll[myEmailConvert].friends = {[searchEmailConvert] : {accept: "發送邀請中", friend_email: searchEmail}};
+      console.log(databaseUserAll[myEmailConvert].friends);
+    } else {
+    databaseUserAll[myEmailConvert].friends[searchEmailConvert]={accept: "發送邀請中", friend_email: searchEmail};
+    console.log(databaseUserAll[myEmailConvert].friends);
+    }
+    
+    if(!databaseUserAll[searchEmailConvert].friends){
+      databaseUserAll[searchEmailConvert].friends = { [myEmailConvert] : {accept: "是否接受邀請", friend_email: myEmail}};
+      console.log(databaseUserAll[searchEmailConvert].friends);
+    } else {
+    databaseUserAll[searchEmailConvert].friends[myEmailConvert]={accept: "是否接受邀請", friend_email: myEmail};
+    console.log(databaseUserAll[searchEmailConvert].friends);
+    }    
+  } 
+  databaseUser.set(databaseUserAll);
+}
   
 
-    for(let friend in friends){
-      console.log(friend);
-      console.log(friends[friend].accept);
-      console.log(friends[friend].friend_email);
-      
-      let friendEmail = document.createElement("div");
-      friendEmail.textContent = friends[friend].friend_email;
-      
-      let friendStatus = document.createElement("div");
-      friendStatus.textContent = friends[friend].accept;
-      friendDiv.append(friendEmail, friendStatus);
 
-      let buttonText;
-      let buttonFunc;
 
-      switch(friends[friend].accept){
-        case "好友" : 
-          buttonText = "解除好友";
-          buttonFunc = (e) => deleteFriend(e);
-          break;
-        case "發送邀請中" : 
-          buttonText = "取消邀請";
-          buttonFunc = (e) => deleteFriend(e);
-          break;
-        case "是否接受邀請" :
-          buttonText = "接受邀請";
-          buttonFunc = (e) => acceptFriend(e);
-          break;
-      }
-      let friendStatusButton = document.createElement("button");
-      friendStatusButton.textContent = buttonText;
-      friendDiv.appendChild(friendStatusButton);    
-      friendStatusButton.onclick = function(){buttonFunc(friend)}; 
-           
-    }
-  }
-
-  function deleteFriend(friend) {
-    console.log(databaseUserAll); //所有 user 的資料
-    console.log(myEmailConvert); //我的正規表達式 email
-    console.log(friend); //刪除者的正規表達式 email
-    delete databaseUserAll[myEmailConvert].friends[friend];
-    delete databaseUserAll[friend].friends[myEmailConvert];
-    console.log(databaseUserAll);
-    databaseUser.set(databaseUserAll);
-  }
-
-  function acceptFriend(friend) {
-    console.log(databaseUserAll); //所有 user 的資料
-    console.log(myEmailConvert); //我的正規表達式 email
-    console.log(friend); //刪除者的正規表達式 email
-    databaseUserAll[myEmailConvert].friends[friend].accept = "好友";
-    databaseUserAll[friend].friends[myEmailConvert].accept = "好友";
-    console.log(databaseUserAll);
-    databaseUser.set(databaseUserAll);
-  }
-    
-    
 
 let newArticle = {
   article_content:"",
@@ -196,12 +242,13 @@ function createFriendsOptions(friendsEmail){
   let selectFriend = document.querySelector(".articleSearch");
   let optionFriendDefault = document.createElement("option");
   optionFriendDefault.textContent = "";
-  selectFriend.appendChild(optionFriendDefault);
+  selectFriend.appendChild(optionFriendDefault); 
   for(i = 0; i < friendsEmail.length; i++){
     let optionFriend = document.createElement("option");
     optionFriend.textContent = friendsEmail[i];
     selectFriend.appendChild(optionFriend);     
   }
+  
 };
 
 //把文章印出來
